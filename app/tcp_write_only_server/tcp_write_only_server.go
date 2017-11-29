@@ -47,11 +47,17 @@ func handleConnDefault(conn net.Conn) (int, error) {
 }
 
 func handleConnTCPCORK(conn net.Conn) (n int, err error) {
+	err = conn.(*net.TCPConn).SetNoDelay(false)
+	if err != nil {
+		return
+	}
 	rawConn, err := conn.(*net.TCPConn).SyscallConn()
 	if err != nil {
 		return
 	}
 	err = rawConn.Control(func(fd uintptr) {
+		val, err := syscall.GetsockoptInt(int(fd), 0x6, 0x3)
+		log.Printf("GetsockoptInt, val: %d, err: %v", val, err)
 		syscall.SetsockoptInt(int(fd), 0x6, 0x3, 1)
 	})
 	if err != nil {
